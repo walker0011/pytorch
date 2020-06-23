@@ -1,5 +1,6 @@
 #include <pytorch_qnnpack.h>
 #include <qnnpack_func.h>
+#include <qnnpack/fpu.h>
 #include <cstring>
 
 namespace qnnpack {
@@ -38,6 +39,9 @@ static void compute_q8gemm(
   uint8_t* c = context->c;
   const size_t c_stride = context->c_stride;
 
+  const pytorch_qnnp_fpu_state saved_fpu_state = pytorch_qnnp_get_fpu_state();
+  pytorch_qnnp_disable_fpu_denormals();
+
   size_t output_channel_index = nr_block_start;
   context->ukernel(
       mr_block_size,
@@ -50,6 +54,8 @@ static void compute_q8gemm(
       c_stride,
       output_channel_index,
       &context->quantization_params);
+
+  pytorch_qnnp_set_fpu_state(saved_fpu_state);
 }
 
 enum pytorch_qnnp_status qnnpackLinear(
@@ -98,6 +104,9 @@ enum pytorch_qnnp_status qnnpackLinear(
       .ukernel = pytorch_qnnp_params.q8conv.gemm,
   };
 
+  const pytorch_qnnp_fpu_state saved_fpu_state = pytorch_qnnp_get_fpu_state();
+  pytorch_qnnp_disable_fpu_denormals();
+
   pthreadpool_compute_4d_tiled(
       threadpool,
       (pthreadpool_function_4d_tiled_t) compute_q8gemm,
@@ -110,6 +119,8 @@ enum pytorch_qnnp_status qnnpackLinear(
       output_size,
       mr,
       nr);
+
+  pytorch_qnnp_set_fpu_state(saved_fpu_state);
 
   return pytorch_qnnp_status_success;
 }

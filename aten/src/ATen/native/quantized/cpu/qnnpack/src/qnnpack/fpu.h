@@ -1,12 +1,14 @@
 #pragma once
 
+// Original: https://github.com/Maratyszcza/pthreadpool
+
 #include <stdint.h>
 
 #if defined(__SSE__) || defined(__x86_64__)
 #include <xmmintrin.h>
 #endif
 
-struct fpu_state {
+struct pytorch_qnnp_fpu_state {
 #if defined(__SSE__) || defined(__x86_64__)
   uint32_t mxcsr;
 #elif defined(__arm__) && defined(__ARM_FP) && (__ARM_FP != 0)
@@ -18,8 +20,8 @@ struct fpu_state {
 #endif
 };
 
-static inline struct fpu_state get_fpu_state() {
-  struct fpu_state state = { 0 };
+static inline struct pytorch_qnnp_fpu_state pytorch_qnnp_get_fpu_state() {
+  struct pytorch_qnnp_fpu_state state = { 0 };
 #if defined(__SSE__) || defined(__x86_64__)
   state.mxcsr = (uint32_t) _mm_getcsr();
 #elif defined(__arm__) && defined(__ARM_FP) && (__ARM_FP != 0)
@@ -30,7 +32,7 @@ static inline struct fpu_state get_fpu_state() {
   return state;
 }
 
-static inline void set_fpu_state(const struct fpu_state state) {
+static inline void pytorch_qnnp_set_fpu_state(const struct pytorch_qnnp_fpu_state state) {
 #if defined(__SSE__) || defined(__x86_64__)
   _mm_setcsr((unsigned int) state.mxcsr);
 #elif defined(__arm__) && defined(__ARM_FP) && (__ARM_FP != 0)
@@ -40,7 +42,7 @@ static inline void set_fpu_state(const struct fpu_state state) {
 #endif
 }
 
-static inline void disable_fpu_denormals() {
+static inline void pytorch_qnnp_disable_fpu_denormals() {
 #if defined(__SSE__) || defined(__x86_64__)
   _mm_setcsr(_mm_getcsr() | 0x8040);
 #elif defined(__arm__) && defined(__ARM_FP) && (__ARM_FP != 0)
